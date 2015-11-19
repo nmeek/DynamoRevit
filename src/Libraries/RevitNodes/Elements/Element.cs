@@ -377,7 +377,7 @@ namespace Revit.Elements
         /// <summary>
         /// Override the element's color in the active view.
         /// </summary>
-        /// <param name="color">The color to apply to a solid fill on the element.</param>
+        /// <param name="color">The color to apply to a solid fill and projection lines on the element.</param>
         public Element OverrideColorInView(Color color)
         {
             TransactionManager.Instance.EnsureInTransaction(DocumentManager.Instance.CurrentDBDocument);
@@ -398,7 +398,47 @@ namespace Revit.Elements
             TransactionManager.Instance.TransactionTaskDone();
             return this;
         }
+        
+        /// <summary>
+        /// Override only the element's surface color in the active view.
+        /// </summary>
+        /// <param name="color">The color to apply to a solid fill on the element.</param>
+        public Element OverrideSurfaceColorInView(Color color) 
+        { 
+         TransactionManager.Instance.EnsureInTransaction(DocumentManager.Instance.CurrentDBDocument); 
 
+            var view = DocumentManager.Instance.CurrentUIDocument.ActiveView; 
+            var ogs = view.GetElementOverrides(InternalElementId);
+
+            var patternCollector = new FilteredElementCollector(DocumentManager.Instance.CurrentDBDocument); 
+            patternCollector.OfClass(typeof(FillPatternElement)); 
+            FillPatternElement solidFill = patternCollector.ToElements().Cast<FillPatternElement>().First(x => x.GetFillPattern().IsSolidFill); 
+
+            var overrideColor = new Autodesk.Revit.DB.Color(color.Red, color.Green, color.Blue); 
+            ogs.SetProjectionFillColor(overrideColor); 
+            ogs.SetProjectionFillPatternId(solidFill.Id); 
+            view.SetElementOverrides(InternalElementId, ogs); 
+
+            TransactionManager.Instance.TransactionTaskDone(); 
+            return this; 
+        }
+        
+        /// <summary>
+        /// Reset the element's overrides in the active view.
+        /// </summary>
+        public void ResetViewOverrides() 
+        { 
+            TransactionManager.Instance.EnsureInTransaction(DocumentManager.Instance.CurrentDBDocument); 
+
+            var view = DocumentManager.Instance.CurrentUIDocument.ActiveView; 
+
+            var ogs = new OverrideGraphicSettings();
+
+            view.SetElementOverrides(InternalElementId, ogs); 
+
+            TransactionManager.Instance.TransactionTaskDone(); 
+        }
+        
         /// <summary>
         /// Set one of the element's parameters.
         /// </summary>
